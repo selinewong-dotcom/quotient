@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── User profiles ──────────────────────────────────────────
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── Work trackers — strict per-user isolation ──────────────
+    match /work_trackers/{uid}/trackers/{trackerId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── Personal trackers — strict per-user isolation ──────────
+    match /personal_trackers/{uid}/trackers/{trackerId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── Shared links — authenticated write, public read ─────────
+    match /shared_links/{token} {
+      // Anyone can read (for the public shared view)
+      allow read: if true;
+      // Only authenticated users can create their own links
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.isRevoked == false
+        && request.resource.data.expiresAt is timestamp;
+      // Only the owner can revoke
+      allow update: if request.auth != null
+        && resource.data.uid == request.auth.uid;
+      // No deletes via client
+      allow delete: if false;
+    }
+  }
+}

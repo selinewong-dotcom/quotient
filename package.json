@@ -1,0 +1,23 @@
+{
+  "name": "quotient",
+  "version": "1.0.0",
+  "description": "Quotient — Proof of Work Engine. Metric-driven progress tracking for workplace accountability and personal development.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "vite build && firebase deploy --only hosting"
+  },
+  "devDependencies": {
+    "vite": "^8.0.12",
+    "vite-plugin-pwa": "^1.3.0"
+  },
+  "dependencies": {
+    "firebase": "^12.14.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "uuid": "^14.0.0"
+  }
+}
