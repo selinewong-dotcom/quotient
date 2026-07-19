@@ -176,8 +176,7 @@ export async function generatePDF(user, mode, trackers) {
       chartValues = Array(14).fill(pct)
     }
 
-    const { normalizeForChart: norm } = await import('./metrics.js')
-    const normalized = norm(chartValues)
+    const normalized = normalizeForChart(chartValues)
 
     // Chart bg
     doc.setFillColor(...BORDER)

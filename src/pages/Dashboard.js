@@ -1,9 +1,10 @@
 import { store } from '../store/appStore.js'
-import { subscribeTrackers } from '../firebase/firestore.js'
+import { createTracker, subscribeTrackers } from '../firebase/firestore.js'
 import { TrackerCard } from '../components/TrackerCard.js'
 import { AddTrackerModal } from '../components/AddTrackerModal.js'
 import { TemplateLibraryModal } from '../components/TemplateLibraryModal.js'
 import { isDemoMode, getDemoTrackers, exitDemo } from '../utils/demo.js'
+import { TEMPLATES } from '../utils/templates.js'
 import { showToast } from '../utils/toast.js'
 
 let unsubscribe = null
@@ -11,6 +12,114 @@ let unsubscribe = null
 export function DashboardPage() {
   const el = document.createElement('div')
   el.className = 'dashboard page-enter'
+  let templatePromptShown = false
+
+  function buildLanguageTrackerPayload(template) {
+    const payload = {
+      type: template.type,
+      title: template.title,
+      description: template.description,
+      logs: [],
+    }
+
+    if (template.type === 'hard_target') {
+      payload.currentValue = template.currentValue ?? 0
+      payload.targetValue = template.targetValue ?? 0
+      payload.unit = template.unit || ''
+      payload.deadline = template.deadline || null
+    } else if (template.type === 'milestone') {
+      payload.milestones = (template.milestones || []).map(m => ({ ...m, id: crypto.randomUUID() }))
+    } else if (template.type === 'rolling_average') {
+      payload.windowDays = template.windowDays ?? 7
+      payload.unit = template.unit || ''
+    }
+
+    return payload
+  }
+
+  function maybeShowLanguageTemplatePrompt() {
+    const mode = store.get('mode')
+    const trackers = store.get('trackers') || []
+    if (mode !== 'personal' || templatePromptShown || trackers.length > 0) return
+
+    templatePromptShown = true
+
+    const backdrop = document.createElement('div')
+    backdrop.className = 'modal-backdrop'
+    backdrop.innerHTML = `
+      <div class="modal" role="dialog" aria-modal="true" aria-label="Language Layout">
+        <div class="modal__header">
+          <h2 class="modal__title">Language Learning Setup</h2>
+        </div>
+        <div class="modal__body">
+          <p style="color:var(--text-secondary);margin-bottom:var(--space-4);">[ Language Layout ]</p>
+          <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+            <div class="choice-card" id="template-full" style="cursor:pointer;padding:var(--space-4);">
+              <div class="choice-card__title">Load Full Language Dashboard</div>
+              <div class="choice-card__desc" style="font-size:var(--text-xs);">
+                Fill the workspace with four ready-to-edit language trackers for immersion hours, syllabus progress, vocabulary velocity, and media intake.
+              </div>
+            </div>
+            <div class="choice-card" id="template-custom" style="cursor:pointer;padding:var(--space-4);">
+              <div class="choice-card__title">Browse Individual Presets</div>
+              <div class="choice-card__desc" style="font-size:var(--text-xs);">
+                Keep the current workspace intact and add single language tracking modules from the preset library.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--ghost" id="template-skip">Skip</button>
+          <button class="btn btn--primary" id="template-confirm" disabled>Proceed</button>
+        </div>
+      </div>
+    `
+
+    let selectedTemplate = null
+
+    backdrop.querySelectorAll('.choice-card').forEach(card => {
+      card.addEventListener('click', () => {
+        backdrop.querySelectorAll('.choice-card').forEach(c => c.classList.remove('selected'))
+        card.classList.add('selected')
+        selectedTemplate = card.id === 'template-full' ? 'full' : 'custom'
+        backdrop.querySelector('#template-confirm').disabled = false
+      })
+    })
+
+    backdrop.querySelector('#template-skip').addEventListener('click', () => {
+      backdrop.remove()
+      showToast('Personal mode ready.')
+    })
+
+    backdrop.querySelector('#template-confirm').addEventListener('click', async () => {
+      if (!selectedTemplate) return
+
+      const user = store.get('user')
+
+      if (selectedTemplate === 'full') {
+        try {
+          const payloads = TEMPLATES.language.map(buildLanguageTrackerPayload)
+          if (user) {
+            await Promise.all(payloads.map(payload => createTracker(user.uid, 'personal', payload)))
+          } else {
+            store.set('trackers', payloads)
+          }
+          showToast('Language dashboard initialized.')
+        } catch (err) {
+          console.error(err)
+          showToast('Error initializing language dashboard.')
+        }
+      } else {
+        const modal = AddTrackerModal(() => {})
+        document.body.appendChild(modal)
+        showToast('Use presets to add language trackers.')
+      }
+
+      backdrop.remove()
+    })
+
+    document.body.appendChild(backdrop)
+  }
 
   function render() {
     const mode     = store.get('mode')
@@ -18,15 +127,14 @@ export function DashboardPage() {
     const isDemo   = isDemoMode()
 
     el.innerHTML = `
-      ${isDemo ? `
-        <div class="demo-banner">
-          <span class="demo-banner__label">Demo Mode</span>
-          <span class="demo-banner__text">Exploring with sample data — no data is saved</span>
-          <button class="btn btn--ghost btn--sm demo-exit-btn" id="exit-demo-btn">Exit Demo</button>
-        </div>
-      ` : ''}
-
       <div class="container">
+        ${isDemo ? `
+          <div class="demo-banner">
+            <span class="demo-banner__label">Demo Mode</span>
+            <span class="demo-banner__text">Exploring with sample data — no data is saved</span>
+            <button class="btn btn--ghost btn--sm demo-exit-btn" id="exit-demo-btn">Exit Demo</button>
+          </div>
+        ` : ''}
         <div class="dashboard__header">
           <div class="dashboard__eyebrow">${mode === 'work' ? 'Work Efficiency' : 'Personal Development'}</div>
           <div class="dashboard__heading">${mode === 'work' ? 'Work' : 'Personal'}</div>
@@ -70,6 +178,8 @@ export function DashboardPage() {
         grid.appendChild(card)
       })
     }
+
+    maybeShowLanguageTemplatePrompt()
 
     // Add tracker button
     const addBtn = el.querySelector('#add-tracker-btn') || el.querySelector('#add-tracker-empty-btn')
@@ -122,6 +232,9 @@ export function DashboardPage() {
   })
 
   const unsubTrackers = store.subscribe('trackers', render)
+  const unsubDemo = store.subscribe('user', () => {
+    if (isDemoMode()) render()
+  })
 
   startSubscription()
   render()
@@ -129,6 +242,7 @@ export function DashboardPage() {
   el._destroy = () => {
     unsubMode()
     unsubTrackers()
+    unsubDemo()
     if (unsubscribe) { unsubscribe(); unsubscribe = null }
   }
 

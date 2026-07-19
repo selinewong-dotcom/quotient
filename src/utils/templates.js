@@ -104,5 +104,48 @@ export const TEMPLATES = {
       windowDays: 7,
       unit: 'hours',
     }
+  ],
+  language: [
+    {
+      id: 'lang_immersion_hours',
+      type: 'hard_target',
+      title: 'Active Immersion Hours',
+      description: 'Structured language study hours toward conversational fluency. Tracks time in target language environment or focused study sessions.',
+      currentValue: 0,
+      targetValue: 100,
+      unit: 'hours',
+      deadline: (() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() + 3);
+        return d.toISOString().split('T')[0];
+      })(),
+    },
+    {
+      id: 'lang_syllabus_roadmap',
+      type: 'milestone',
+      title: 'Core Syllabus / Textbook Roadmap',
+      description: 'Structured progression through language course material. Track completion of textbook chapters, grammar units, or course modules.',
+      milestones: [
+        { id: 'lm1', label: 'Complete Unit 1: Phonetics & Alphabet', completed: false },
+        { id: 'lm2', label: 'Finish Unit 2: Basic Greetings & Courtesies', completed: false },
+        { id: 'lm3', label: 'Master Unit 3: Present Tense Conjugation', completed: false },
+        { id: 'lm4', label: 'Complete Unit 4: Present Perfect & Past Tense', completed: false },
+        { id: 'lm5', label: 'Pass Unit 5 Proficiency Checkpoint', completed: false },
+      ],
+    },
+    {
+      id: 'lang_vocab_cards',
+      type: 'rolling_average',
+      title: 'Daily Vocabulary Cards Cleared',
+      description: 'Rolling 7-day average of vocabulary cards studied or flashcards completed. Measure cumulative learning velocity.',
+      windowDays: 7,
+      unit: 'cards',
+    },
+    {
+      id: 'lang_media_intake',
+      type: 'habit',
+      title: 'Daily Target-Language Media Intake',
+      description: 'Daily engagement with native media: podcasts, films, news, or conversational practice. Binary yes/no check-in.',
+    }
   ]
 }

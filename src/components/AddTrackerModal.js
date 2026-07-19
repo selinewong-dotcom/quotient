@@ -1,12 +1,51 @@
 import { store } from '../store/appStore.js'
 import { createTracker, updateTracker } from '../firebase/firestore.js'
 import { showToast } from '../utils/toast.js'
+import { TEMPLATES } from '../utils/templates.js'
 
 const TRACKER_TYPES = [
   { value: 'hard_target',     label: 'Hard Target',      desc: 'Numeric value against a deadline.' },
   { value: 'milestone',       label: 'Project Milestone', desc: 'Checklist with % completion.' },
   { value: 'rolling_average', label: 'Rolling Average',   desc: 'Velocity chart over a time window.' },
   { value: 'habit',           label: 'Habit',             desc: 'Daily binary check-in.' },
+]
+
+// Language learning presets for quick access
+const LANGUAGE_PRESETS = [
+  {
+    id: 'lang_immersion_hours',
+    title: 'Immersion Tracker',
+    type: 'hard_target',
+    description: 'Structured language study hours toward conversational fluency. Tracks time in target language environment or focused study sessions.',
+    currentValue: 0,
+    targetValue: 100,
+    unit: 'hours',
+  },
+  {
+    id: 'lang_syllabus_roadmap',
+    title: 'Syllabus Roadmap',
+    type: 'milestone',
+    description: 'Structured progression through language course material. Track completion of textbook chapters, grammar units, or course modules.',
+    milestones: [
+      { id: 'lm1', label: 'Unit 1', completed: false },
+      { id: 'lm2', label: 'Unit 2', completed: false },
+      { id: 'lm3', label: 'Unit 3', completed: false },
+    ],
+  },
+  {
+    id: 'lang_vocab_cards',
+    title: 'Vocabulary Velocity',
+    type: 'rolling_average',
+    description: 'Rolling 7-day average of vocabulary cards studied or flashcards completed. Measure cumulative learning velocity.',
+    windowDays: 7,
+    unit: 'cards',
+  },
+  {
+    id: 'lang_media_intake',
+    title: 'Media Intake',
+    type: 'habit',
+    description: 'Daily engagement with native media: podcasts, films, news, or conversational practice. Binary yes/no check-in.',
+  },
 ]
 
 export function AddTrackerModal(onClose, trackerToEdit = null, templateData = null) {
@@ -31,6 +70,30 @@ export function AddTrackerModal(onClose, trackerToEdit = null, templateData = nu
         <button class="modal__close" id="modal-close" aria-label="Close">&#x2715;</button>
       </div>
       <div class="modal__body">
+
+        <!-- Presets Navigation Row -->
+        ${!isEditMode ? `
+          <div style="padding:var(--space-3) 0;margin-bottom:var(--space-4);border-bottom:1px solid var(--border-default);">
+            <div style="font-size:var(--text-xs);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--space-2);">Presets</div>
+            <div style="display:flex;gap:var(--space-2);overflow-x:auto;padding-bottom:var(--space-2);">
+              ${LANGUAGE_PRESETS.map(p => `
+                <button class="preset-btn" data-preset-id="${p.id}" style="
+                  padding:var(--space-2) var(--space-3);
+                  border:1px solid var(--border-default);
+                  border-radius:var(--radius-md);
+                  background:var(--bg-secondary);
+                  color:var(--text-primary);
+                  font-size:var(--text-sm);
+                  cursor:pointer;
+                  white-space:nowrap;
+                  transition:all 0.15s;
+                ">
+                  ${p.title}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
 
         <!-- Type selector -->
         ${isEditMode ? `
@@ -193,6 +256,40 @@ export function AddTrackerModal(onClose, trackerToEdit = null, templateData = nu
     renderTypeFields()
   }
 
+  function loadPreset(presetId) {
+    const preset = LANGUAGE_PRESETS.find(p => p.id === presetId)
+    if (!preset) return
+
+    // Set form values from preset
+    backdrop.querySelector('#t-title').value = preset.title
+    backdrop.querySelector('#t-desc').value = preset.description || ''
+
+    // Set type and render fields
+    setType(preset.type)
+
+    // Pre-populate type-specific fields
+    if (preset.type === 'hard_target') {
+      setTimeout(() => {
+        const curInput = backdrop.querySelector('#t-current')
+        const trgInput = backdrop.querySelector('#t-target')
+        const unitInput = backdrop.querySelector('#t-unit')
+        if (curInput) curInput.value = preset.currentValue || 0
+        if (trgInput) trgInput.value = preset.targetValue || ''
+        if (unitInput) unitInput.value = preset.unit || ''
+      }, 0)
+    } else if (preset.type === 'milestone') {
+      milestones = preset.milestones ? preset.milestones.map(m => ({ ...m, id: crypto.randomUUID() })) : []
+      setTimeout(() => renderMilestoneList(backdrop.querySelector('#type-fields')), 0)
+    } else if (preset.type === 'rolling_average') {
+      setTimeout(() => {
+        const winInput = backdrop.querySelector('#t-window')
+        const unitInput = backdrop.querySelector('#t-unit')
+        if (winInput) winInput.value = preset.windowDays || 7
+        if (unitInput) unitInput.value = preset.unit || ''
+      }, 0)
+    }
+  }
+
   async function handleSave() {
     const title = backdrop.querySelector('#t-title').value.trim()
     const desc  = backdrop.querySelector('#t-desc').value.trim()
@@ -260,6 +357,16 @@ export function AddTrackerModal(onClose, trackerToEdit = null, templateData = nu
   backdrop.querySelector('#modal-close').addEventListener('click', cleanup)
   backdrop.querySelector('#cancel-btn').addEventListener('click', cleanup)
   backdrop.querySelector('#save-btn').addEventListener('click', handleSave)
+
+  // Wire up preset buttons
+  backdrop.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      loadPreset(btn.dataset.presetId)
+      // Visual feedback
+      backdrop.querySelectorAll('.preset-btn').forEach(b => b.style.borderColor = 'var(--border-default)')
+      btn.style.borderColor = 'var(--text-primary)'
+    })
+  })
 
   if (!isEditMode) {
     backdrop.querySelectorAll('[data-type]').forEach(card => {

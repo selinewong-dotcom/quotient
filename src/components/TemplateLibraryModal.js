@@ -145,7 +145,7 @@ export function TemplateLibraryModal(onClose) {
   function cleanup() {
     backdrop.style.opacity = '0'
     backdrop.style.transition = 'opacity 0.2s'
-    setTimeout(() => { backdrop.remove(); onClose?.() }, 200)
+    setTimeout(() => { backdrop.remove(); styleEl.remove(); onClose?.() }, 200)
   }
 
   backdrop.addEventListener('click', (e) => { if (e.target === backdrop) cleanup() })
@@ -158,6 +158,7 @@ export function TemplateLibraryModal(onClose) {
 
   // Add template-specific styles locally
   const styleEl = document.createElement('style')
+  styleEl.id = 'template-library-modal-styles'
   styleEl.textContent = `
     .template-tabs .tab-btn.active {
       background: var(--text-primary) !important;

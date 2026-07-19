@@ -134,6 +134,54 @@ const PERSONAL_TRACKERS = [
   },
 ]
 
+const LANGUAGE_TRACKERS = [
+  {
+    id:           'lt-1',
+    type:         'hard_target',
+    title:        'Active Immersion Hours',
+    description:  'Structured language study hours toward conversational fluency.',
+    currentValue: 34,
+    targetValue:  100,
+    deadline:     (() => { const d = new Date(); d.setMonth(d.getMonth() + 3); return d.toISOString().split('T')[0] })(),
+    unit:         'hours',
+    logs:         makeLogs(21, 5, 1),
+    createdAt:    new Date(Date.now() - 60 * 86400000),
+  },
+  {
+    id:           'lt-2',
+    type:         'milestone',
+    title:        'Core Syllabus / Textbook Roadmap',
+    description:  'Structured progression through language course material.',
+    milestones: [
+      { id: 'lm1', label: 'Complete Unit 1: Phonetics & Alphabet',          completed: true,  completedAt: '2026-05-10' },
+      { id: 'lm2', label: 'Finish Unit 2: Basic Greetings & Courtesies',   completed: true,  completedAt: '2026-05-20' },
+      { id: 'lm3', label: 'Master Unit 3: Present Tense Conjugation',      completed: true,  completedAt: '2026-06-01' },
+      { id: 'lm4', label: 'Complete Unit 4: Present Perfect & Past Tense', completed: false, completedAt: null },
+      { id: 'lm5', label: 'Pass Unit 5 Proficiency Checkpoint',            completed: false, completedAt: null },
+    ],
+    logs:         [],
+    createdAt:    new Date(Date.now() - 90 * 86400000),
+  },
+  {
+    id:          'lt-3',
+    type:        'rolling_average',
+    title:       'Daily Vocabulary Cards Cleared',
+    description: 'Rolling 7-day average of vocabulary cards studied.',
+    windowDays:  7,
+    unit:        'cards',
+    logs:        makeLogs(21, 45, 15),
+    createdAt:   new Date(Date.now() - 60 * 86400000),
+  },
+  {
+    id:          'lt-4',
+    type:        'habit',
+    title:       'Daily Target-Language Media Intake',
+    description: 'Daily engagement with native media: podcasts, films, news.',
+    logs:        makeHabitLogs(14, 0.82),
+    createdAt:   new Date(Date.now() - 30 * 86400000),
+  },
+]
+
 export function activateDemo() {
   store.set('user',     DEMO_USER)
   store.set('profile',  DEMO_PROFILE)
@@ -145,10 +193,18 @@ export function activateDemo() {
   store._demoMode = true
   store._workTrackers     = WORK_TRACKERS
   store._personalTrackers = PERSONAL_TRACKERS
+  store._languageTrackers = LANGUAGE_TRACKERS
+
+  // Force the dashboard to re-render so the demo banner appears immediately.
+  store.notify('trackers')
+  store.notify('mode')
 }
 
 export function getDemoTrackers(mode) {
-  return mode === 'work' ? WORK_TRACKERS : PERSONAL_TRACKERS
+  if (mode === 'work') return WORK_TRACKERS
+  if (mode === 'personal') return PERSONAL_TRACKERS
+  if (mode === 'language') return LANGUAGE_TRACKERS
+  return []
 }
 
 export function isDemoMode() {

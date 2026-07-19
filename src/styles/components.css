@@ -372,7 +372,6 @@
 .tracker-card:hover {
   border-color: var(--border-strong);
   box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
 }
 
 .tracker-card::before {
@@ -676,9 +675,15 @@
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-3) var(--space-6);
+  margin: 0 0 var(--space-4);
   background: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border-default);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   flex-wrap: wrap;
+  width: min(100%, 1200px);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
 }
 
 .demo-banner__label {

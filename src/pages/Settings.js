@@ -104,7 +104,8 @@ export function SettingsPage() {
     })
 
     el.querySelector('#theme-btn').addEventListener('click', () => {
-      store.set('theme', theme === 'dark' ? 'light' : 'dark')
+      const currentTheme = store.get('theme')
+      store.set('theme', currentTheme === 'dark' ? 'light' : 'dark')
     })
 
     el.querySelector('#pm-work').addEventListener('click', async () => {
